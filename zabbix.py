@@ -138,7 +138,6 @@ class ZabbixInventory(object):
                 print(json.dumps(data, indent=2))
 
             elif self.options.list:
-                print(self.options)
                 data = self.get_list(api)
                 print(json.dumps(data, indent=2))
 
