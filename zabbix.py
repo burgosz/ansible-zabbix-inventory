@@ -96,13 +96,19 @@ class ZabbixInventory(object):
             for template in templates:
                 template_ids.append(template['templateid'])
 
-        hostsData = api.host.get({'output': 'extend', 'selectGroups': 'extend',
+        hostsData = api.host.get({'output': 'extend', 'selectGroups': 'extend', 'selectInterfaces': 'extend',
             'templateids': template_ids})
 
         data = {}
         data[self.defaultgroup] = self.hoststub()
         for host in hostsData:
-            hostname = host['name']
+            for interface in host['interfaces']:
+                if interface['type'] == '1':
+                    if interface['dns'] != '':
+                        hostname = interface['dns']
+                    else:
+                        hostname = interface['ip']
+                break
             data[self.defaultgroup]['hosts'].append(hostname)
 
             for group in host['groups']:
