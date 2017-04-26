@@ -118,7 +118,8 @@ class ZabbixInventory(object):
                     data[groupname] = self.hoststub()
 
                 data[groupname]['hosts'].append(hostname)
-
+                
+        data['_meta'] = {'hostvars':{}}
         return data
 
     def __init__(self):
