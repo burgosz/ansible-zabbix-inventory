@@ -61,15 +61,28 @@ class ZabbixInventory(object):
 	        conf_path = os.path.dirname(os.path.realpath(__file__)) + '/zabbix.ini'
         if os.path.exists(conf_path):
 	        config.read(conf_path)
+	else:
+		self.zabbix_server = os.environ.get('ZABBIX_SERVER')
+		self.zabbix_username = os.environ.get('ZABBIX_USERNAME')
+		self.zabbix_password = os.environ.get('ZABBIX_PASSWORD')
+		return
+
         # server
         if config.has_option('zabbix', 'server'):
             self.zabbix_server = config.get('zabbix', 'server')
+	else:
+	    self.zabbix_server = os.getenv('ZABBIX_SERVER','Error: server not provided.')
 
         # login
         if config.has_option('zabbix', 'username'):
             self.zabbix_username = config.get('zabbix', 'username')
+	else:
+	    self.zabbix_username =  os.getenv('ZABBIX_USERNAME','Error: username not provided.')
+
         if config.has_option('zabbix', 'password'):
             self.zabbix_password = config.get('zabbix', 'password')
+	else:
+	    self.zabbix_password = os.getenv('ZABBIX_USERNAME','Error: password not provided.')
 
     def read_cli(self):
         parser = argparse.ArgumentParser()
@@ -118,7 +131,7 @@ class ZabbixInventory(object):
                     data[groupname] = self.hoststub()
 
                 data[groupname]['hosts'].append(hostname)
-                
+
         data['_meta'] = {'hostvars':{}}
         return data
 
@@ -132,28 +145,23 @@ class ZabbixInventory(object):
         self.read_settings()
         self.read_cli()
 
-        if self.zabbix_server and self.zabbix_username:
-            try:
-                api = ZabbixAPI(server=self.zabbix_server)
-                api.login(user=self.zabbix_username, password=self.zabbix_password)
-            except BaseException as e:
-                print("Error: Could not login to Zabbix server. Check your zabbix.ini.", file=sys.stderr)
-                sys.exit(1)
+        try:
+            api = ZabbixAPI(server=self.zabbix_server)
+            api.login(user=self.zabbix_username, password=self.zabbix_password)
+        except BaseException as e:
+            print("Error: Could not login to Zabbix server. Check your configuration.", file=sys.stderr)
+            sys.exit(1)
 
-            if self.options.host:
-                data = self.get_host(api, self.options.host)
-                print(json.dumps(data, indent=2))
+        if self.options.host:
+            data = self.get_host(api, self.options.host)
+            print(json.dumps(data, indent=2))
 
-            elif self.options.list:
-                data = self.get_list(api)
-                print(json.dumps(data, indent=2))
-
-            else:
-                print("usage: --list  ..OR.. --host <hostname>", file=sys.stderr)
-                sys.exit(1)
+        elif self.options.list:
+            data = self.get_list(api)
+            print(json.dumps(data, indent=2))
 
         else:
-            print("Error: Configuration of server and credentials are required. See zabbix.ini.", file=sys.stderr)
+            print("usage: --list  ..OR.. --host <hostname>", file=sys.stderr)
             sys.exit(1)
 
 ZabbixInventory()
